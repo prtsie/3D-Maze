@@ -28,7 +28,14 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
+            moveDelay = new System.Windows.Forms.Timer(components);
             SuspendLayout();
+            // 
+            // moveDelay
+            // 
+            moveDelay.Interval = 50;
+            moveDelay.Tick += moveDelay_Tick;
             // 
             // MainForm
             // 
@@ -37,10 +44,16 @@
             ClientSize = new Size(800, 450);
             Name = "MainForm";
             Text = "MainForm";
+            Shown += MainForm_Shown;
             Paint += MainForm_Paint;
+            KeyDown += MainForm_KeyDown;
+            KeyUp += MainForm_KeyUp;
+            MouseMove += MainForm_MouseMove;
             ResumeLayout(false);
         }
 
         #endregion
+
+        private System.Windows.Forms.Timer moveDelay;
     }
 }
