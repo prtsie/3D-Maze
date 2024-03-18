@@ -12,7 +12,7 @@ namespace _3D_Maze
 
         public Point CenterLocation { get; set; }
 
-        public double FieldOfView { get; private set; } = Math.PI / 3;
+        public double FieldOfView { get; private set; } = Math.PI / 2;
 
         public double Angle
         {

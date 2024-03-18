@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace _3D_Maze
 {
-    internal sealed class Block(Rectangle rect, Brush brush)
+    internal sealed class Block(Rectangle rect, bool isSolid)
     {
         public Rectangle Rect { get; set; } = rect;
 
-        public Brush Brush { get; set; } = brush;
+        public bool IsSolid { get; set; } = isSolid;
     }
 }
