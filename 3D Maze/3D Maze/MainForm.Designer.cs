@@ -29,13 +29,13 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            moveDelay = new System.Windows.Forms.Timer(components);
+            gameTimer = new System.Windows.Forms.Timer(components);
             SuspendLayout();
             // 
             // moveDelay
             // 
-            moveDelay.Interval = 30;
-            moveDelay.Tick += moveDelay_Tick;
+            gameTimer.Interval = 30;
+            gameTimer.Tick += gameTimer_Tick;
             // 
             // MainForm
             // 
@@ -54,6 +54,6 @@
 
         #endregion
 
-        private System.Windows.Forms.Timer moveDelay;
+        private System.Windows.Forms.Timer gameTimer;
     }
 }

@@ -12,7 +12,6 @@ namespace _3D_Maze
 {
     public partial class MainForm : Form
     {
-        private readonly Pen bordersPen = Pens.Black;
         private readonly Brush wallBrush = Brushes.Orange;
         private readonly Color actualWallColor = Color.Orange;
         private readonly Brush floorBrush = Brushes.Gray;
@@ -23,7 +22,8 @@ namespace _3D_Maze
         private BufferedGraphics buffer;
         private const int BlockSize = 10;
         private const int PlayerSpeed = 2;
-        private const int RenderDistance = 50;
+        private const int RenderDistance = 40;
+        private const int PixelSize = 6;
         private const double WallHeightMultiplier = 0.1;
         private const double Sensitivity = 0.01;
         private readonly int size = 10;
@@ -76,16 +76,16 @@ namespace _3D_Maze
             var playerViewLeftSide = player.Angle - player.FieldOfView / 2;
             var angleStep = player.FieldOfView / DisplayRectangle.Width;
             var windowCenter = DisplayRectangle.Height / 2;
-            var bitmap = new Bitmap(DisplayRectangle.Width, DisplayRectangle.Height);
+            var bitmap = new Bitmap(DisplayRectangle.Width + PixelSize - 1, DisplayRectangle.Height + PixelSize - 1);
             var blocksNearby = GetNearbyBlocks();
-            for (var col = 0; col < DisplayRectangle.Width; col++)
+            for (var col = 0; col < DisplayRectangle.Width; col += PixelSize)
             {
                 var rayEnd = new Vector();
-                var step = new Vector(0, -1).Rotate(playerViewLeftSide + angleStep * col); //Костыль
+                var step = new Vector(0, -0.4).Rotate(playerViewLeftSide + angleStep * col); //Костыль
+                var blockFound = false;
                 for (; rayEnd.Length < RenderDistance; rayEnd += step)
                 {
                     var point = (Point)(new Vector(player.CenterLocation) + rayEnd);
-                    var blockFound = false;
                     foreach (var block in blocksNearby)
                     {
                         if (block.Rect.Contains(point))
@@ -104,8 +104,8 @@ namespace _3D_Maze
                 var distancePercent = distance / RenderDistance;
                 var wallColor = Color.FromArgb(actualWallColor.R - (int)(actualWallColor.R * distancePercent),
                                                actualWallColor.G - (int)(actualWallColor.G * distancePercent),
-                                               actualWallColor.B - (int)(actualWallColor.B * distancePercent));
-                for (var row = 0; row < DisplayRectangle.Height; row++)
+                                              actualWallColor.B - (int)(actualWallColor.B * distancePercent));
+                for (var row = 0; row < DisplayRectangle.Height; row += PixelSize)
                 {
                     Color color;
                     if (row < windowCenter - visibleHeight / 2)
@@ -118,9 +118,16 @@ namespace _3D_Maze
                     }
                     else
                     {
+                        //TODO: исправить
                         color = Color.Gray;
                     }
-                    bitmap.SetPixel(col, row, color);
+                    for (var pixelRow = 0; pixelRow < PixelSize; pixelRow++)
+                    {
+                        for (var pixelCol = 0; pixelCol < PixelSize; pixelCol++)
+                        {
+                            bitmap.SetPixel(col + pixelCol, row + pixelRow, color);
+                        }
+                    }
                 }
             }
             buffer.Graphics.DrawImage(bitmap, new Point());
@@ -140,7 +147,7 @@ namespace _3D_Maze
             buffer = BufferedGraphicsManager.Current.Allocate(CreateGraphics(), DisplayRectangle);
             buffer.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             wallHeight = DisplayRectangle.Height;
-            moveDelay.Start();
+            gameTimer.Start();
         }
 
         private void MainForm_Paint(object _, PaintEventArgs __)
@@ -156,7 +163,7 @@ namespace _3D_Maze
             }
         }
 
-        private void moveDelay_Tick(object _, EventArgs __)
+        private void gameTimer_Tick(object _, EventArgs __)
         {
             var horizontalMove = 0;
             var verticalMove = 0;
