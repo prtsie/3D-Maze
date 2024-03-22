@@ -45,7 +45,6 @@
             Name = "MainForm";
             Text = "MainForm";
             Shown += MainForm_Shown;
-            Paint += MainForm_Paint;
             KeyDown += MainForm_KeyDown;
             KeyUp += MainForm_KeyUp;
             MouseMove += MainForm_MouseMove;

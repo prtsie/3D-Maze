@@ -19,16 +19,20 @@ namespace _3D_Maze
         private readonly Player player = new();
         private readonly Size playerSize = new(10, 10);
         private readonly Block[] blocks;
-        private BufferedGraphics buffer;
+        private BufferedGraphics buffer = null!;
+        private Bitmap bitmap = null!;
         private const int BlockSize = 10;
         private const int PlayerSpeed = 2;
         private const int RenderDistance = 40;
-        private const int PixelSize = 6;
+        private const int PixelSize = 4;
         private const double WallHeightMultiplier = 0.1;
         private const double Sensitivity = 0.01;
         private readonly int size = 10;
         private double wallHeight;
         private int previousHorizontalMousePos;
+        private double windowCenter;
+        private double angleStep;
+        private IEnumerable<Block> blocksNearby = null!;
         private readonly List<Keys> pressedKeys = new();
         private readonly Dictionary<Keys, Size> controls = new()
         {
@@ -51,7 +55,6 @@ namespace _3D_Maze
                 }
             }
             player.CenterLocation = CenterOfRect(blocks[size + 1].Rect);
-            buffer = null!;
         }
 
         private static Point CenterOfRect(Rectangle rect)
@@ -74,10 +77,6 @@ namespace _3D_Maze
         private void Redraw()
         {
             var playerViewLeftSide = player.Angle - player.FieldOfView / 2;
-            var angleStep = player.FieldOfView / DisplayRectangle.Width;
-            var windowCenter = DisplayRectangle.Height / 2;
-            var bitmap = new Bitmap(DisplayRectangle.Width + PixelSize - 1, DisplayRectangle.Height + PixelSize - 1);
-            var blocksNearby = GetNearbyBlocks();
             for (var col = 0; col < DisplayRectangle.Width; col += PixelSize)
             {
                 var rayEnd = new Vector();
@@ -85,7 +84,7 @@ namespace _3D_Maze
                 var blockFound = false;
                 for (; rayEnd.Length < RenderDistance; rayEnd += step)
                 {
-                    var point = (Point)(new Vector(player.CenterLocation) + rayEnd);
+                    var point = player.CenterLocation + rayEnd;
                     foreach (var block in blocksNearby)
                     {
                         if (block.Rect.Contains(point))
@@ -119,7 +118,7 @@ namespace _3D_Maze
                     else
                     {
                         //TODO: исправить
-                        color = Color.Gray;
+                        color = Color.Black;
                     }
                     for (var pixelRow = 0; pixelRow < PixelSize; pixelRow++)
                     {
@@ -147,12 +146,10 @@ namespace _3D_Maze
             buffer = BufferedGraphicsManager.Current.Allocate(CreateGraphics(), DisplayRectangle);
             buffer.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             wallHeight = DisplayRectangle.Height;
+            bitmap = new Bitmap(DisplayRectangle.Width + PixelSize - 1, DisplayRectangle.Height + PixelSize - 1);
+            angleStep = player.FieldOfView / DisplayRectangle.Width;
+            windowCenter = DisplayRectangle.Height / 2;
             gameTimer.Start();
-        }
-
-        private void MainForm_Paint(object _, PaintEventArgs __)
-        {
-            Redraw();
         }
 
         private void MainForm_KeyDown(object _, KeyEventArgs e)
@@ -165,6 +162,7 @@ namespace _3D_Maze
 
         private void gameTimer_Tick(object _, EventArgs __)
         {
+            blocksNearby = GetNearbyBlocks();
             var horizontalMove = 0;
             var verticalMove = 0;
             foreach (var key in pressedKeys)
@@ -176,7 +174,6 @@ namespace _3D_Maze
             if (horizontalMove != 0 || verticalMove != 0)
             {
                 var normalized = new Vector(horizontalMove, verticalMove).Normalize().Rotate(player.Angle) * PlayerSpeed;
-                var blocksNearby = GetNearbyBlocks();
                 var newLocation = new Point(player.CenterLocation.X + (int)Math.Round(normalized.X), player.CenterLocation.Y + (int)Math.Round(normalized.Y));
                 var collide = false;
                 foreach (var block in blocksNearby)
