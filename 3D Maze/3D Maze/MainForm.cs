@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using _3D_Maze.Properties;
 
 namespace _3D_Maze
 {
@@ -40,6 +41,14 @@ namespace _3D_Maze
             {Keys.A, new Size(-PlayerSpeed, 0) },
             {Keys.S, new Size(0, PlayerSpeed) },
             {Keys.D, new Size(PlayerSpeed, 0) }
+        };
+        private int lampImageIndex;
+        private readonly Bitmap[] lampImages = new Bitmap[]
+        {
+            Resources.lamp_1,
+            Resources.lamp_2,
+            Resources.lamp_3,
+            Resources.lamp_4
         };
 
         public MainForm()
@@ -130,6 +139,12 @@ namespace _3D_Maze
                 }
             }
             buffer.Graphics.DrawImage(bitmap, new Point());
+            var lampRectangle = new Rectangle(400, DisplayRectangle.Height - 179, 108, 179);
+            if (lampImageIndex == lampImages.Length)
+            {
+                lampImageIndex = 0;
+            }
+            buffer.Graphics.DrawImage(lampImages[lampImageIndex++], lampRectangle);
             foreach (var block in blocks)
             {
                 buffer.Graphics.FillRectangle(block.IsSolid ? wallBrush : floorBrush, block.Rect);
