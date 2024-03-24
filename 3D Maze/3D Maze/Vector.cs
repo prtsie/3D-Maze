@@ -28,6 +28,12 @@ namespace _3D_Maze
             Y = point.Y;
         }
 
+        public Vector(Point start, Point end)
+        {
+            X = end.X - start.X;
+            Y = end.Y - start.Y;
+        }
+
         public readonly Vector Normalize()
         {
             if (Length == 0)

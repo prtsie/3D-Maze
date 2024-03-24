@@ -16,22 +16,30 @@ namespace _3D_Maze
         private readonly Brush wallBrush = Brushes.Orange;
         private readonly Color actualWallColor = Color.Orange;
         private readonly Brush floorBrush = Brushes.Gray;
+        private readonly Random random = new();
         private readonly Maze maze;
         private readonly Player player = new();
         private readonly Size playerSize = new(10, 10);
+        private readonly Monster monster = new(Resources.monster);
+        private readonly Size monsterOnScreenSize = new(200, 200);
         private readonly Block[] blocks;
         private BufferedGraphics buffer = null!;
-        private Bitmap bitmap = null!;
+        private Bitmap wallsBitmap = null!;
+        private Bitmap background = null!;
         private const int BlockSize = 10;
-        private const int PlayerSpeed = 2;
+        private const int PlayerSpeed = 1;
         private const int RenderDistance = 40;
         private const int PixelSize = 4;
+        private const int MonsterMoveTicks = 150;
         private const double WallHeightMultiplier = 0.1;
         private const double Sensitivity = 0.01;
         private readonly int size = 10;
         private double wallHeight;
         private int previousHorizontalMousePos;
         private double windowCenter;
+        private double windowCenterOffset;
+        private int offsetCounter;
+        private int monsterMoveTicksCounter = 0;
         private double angleStep;
         private IEnumerable<Block> blocksNearby = null!;
         private readonly List<Keys> pressedKeys = new();
@@ -83,9 +91,17 @@ namespace _3D_Maze
                             && block.Rect.Y - player.CenterLocation.Y < RenderDistance);
         }
 
+        private IEnumerable<Block> GetNearbySpace()
+        {
+            return blocks.Where(block => !block.IsSolid
+                            && block.Rect.X - player.CenterLocation.X < RenderDistance
+                            && block.Rect.Y - player.CenterLocation.Y < RenderDistance);
+        }
+
         private void Redraw()
         {
-            var playerViewLeftSide = player.Angle - player.FieldOfView / 2;
+            var playerViewLeftSide = (player.Angle - player.FieldOfView / 2) % (Math.PI * 2);
+            var windowCenterWithOffset = windowCenter + windowCenterOffset;
             for (var col = 0; col < DisplayRectangle.Width; col += PixelSize)
             {
                 var rayEnd = new Vector();
@@ -116,30 +132,40 @@ namespace _3D_Maze
                 for (var row = 0; row < DisplayRectangle.Height; row += PixelSize)
                 {
                     Color color;
-                    if (row < windowCenter - visibleHeight / 2)
+                    if (row < windowCenterWithOffset - visibleHeight / 2)
                     {
                         color = Color.Black;
                     }
-                    else if (row < windowCenter + visibleHeight / 2)
+                    else if (row < windowCenterWithOffset + visibleHeight / 2)
                     {
                         color = wallColor;
                     }
                     else
                     {
-                        //TODO: исправить
-                        color = Color.Black;
+                        color = Color.Transparent;
                     }
                     for (var pixelRow = 0; pixelRow < PixelSize; pixelRow++)
                     {
                         for (var pixelCol = 0; pixelCol < PixelSize; pixelCol++)
                         {
-                            bitmap.SetPixel(col + pixelCol, row + pixelRow, color);
+                            wallsBitmap.SetPixel(col + pixelCol, row + pixelRow, color);
                         }
                     }
                 }
             }
-            buffer.Graphics.DrawImage(bitmap, new Point());
-            var lampRectangle = new Rectangle(400, DisplayRectangle.Height - 179, 108, 179);
+            buffer.Graphics.DrawImage(background, 0, 0);
+            var vectorToMonster = new Vector(player.CenterLocation, monster.Position);
+            var monsterAngle = vectorToMonster.Angle;
+            buffer.Graphics.DrawImage(wallsBitmap, 0, 0);
+            if (playerViewLeftSide - player.FieldOfView < monsterAngle && monsterAngle < playerViewLeftSide && vectorToMonster.Length < RenderDistance)
+            {
+                var screenPosition = new Point((int)((playerViewLeftSide - monsterAngle) / angleStep), (int)Math.Round(windowCenterWithOffset));
+                var multiplier = vectorToMonster.Length / RenderDistance;
+                var visibleSize = new Size((int)Math.Round(monsterOnScreenSize.Width - monsterOnScreenSize.Width * multiplier),
+                                           (int)Math.Round(monsterOnScreenSize.Height - monsterOnScreenSize.Height * multiplier));
+                buffer.Graphics.DrawImage(monster.Image, new Rectangle(screenPosition, visibleSize));
+            }
+            var lampRectangle = new Rectangle(400, DisplayRectangle.Height - 178 + (int)Math.Round(windowCenterOffset), 108, 179);
             if (lampImageIndex == lampImages.Length)
             {
                 lampImageIndex = 0;
@@ -151,7 +177,9 @@ namespace _3D_Maze
             }
             buffer.Graphics.FillEllipse(wallBrush, RectFromCenter(player.CenterLocation, playerSize));
             var normalized = new Vector(0, -1).Normalize().Rotate(player.Angle) * (playerSize.Width / 2);
-            buffer.Graphics.FillEllipse(Brushes.Red, RectFromCenter(new Point(player.CenterLocation.X + (int)Math.Round(normalized.X), player.CenterLocation.Y + (int)Math.Round(normalized.Y)), new Size(5, 5)));
+            buffer.Graphics.FillEllipse(Brushes.Red, RectFromCenter(new Point(player.CenterLocation.X + (int)Math.Round(normalized.X),
+                                                                              player.CenterLocation.Y + (int)Math.Round(normalized.Y)), new Size(5, 5)));
+            buffer.Graphics.FillEllipse(Brushes.Red, RectFromCenter(monster.Position, playerSize));
             buffer.Render();
             buffer.Graphics.Clear(Color.White);
         }
@@ -159,9 +187,16 @@ namespace _3D_Maze
         private void MainForm_Shown(object _, EventArgs __)
         {
             buffer = BufferedGraphicsManager.Current.Allocate(CreateGraphics(), DisplayRectangle);
-            buffer.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             wallHeight = DisplayRectangle.Height;
-            bitmap = new Bitmap(DisplayRectangle.Width + PixelSize - 1, DisplayRectangle.Height + PixelSize - 1);
+            wallsBitmap = new Bitmap(DisplayRectangle.Width + PixelSize - 1, DisplayRectangle.Height + PixelSize - 1);
+            background = new Bitmap(DisplayRectangle.Width, DisplayRectangle.Height);
+            for (var row = 0; row < background.Height; row++)
+            {
+                for (var col = 0; col < background.Width; col++)
+                {
+                    background.SetPixel(col, row, Color.Black);
+                }
+            }
             angleStep = player.FieldOfView / DisplayRectangle.Width;
             windowCenter = DisplayRectangle.Height / 2;
             gameTimer.Start();
@@ -177,6 +212,11 @@ namespace _3D_Maze
 
         private void gameTimer_Tick(object _, EventArgs __)
         {
+            if (monsterMoveTicksCounter++ == MonsterMoveTicks)
+            {
+                var nearbySpace = GetNearbySpace().ToArray();
+                monster.Position = CenterOfRect(nearbySpace[random.Next(nearbySpace.Length)].Rect);
+            }
             blocksNearby = GetNearbyBlocks();
             var horizontalMove = 0;
             var verticalMove = 0;
@@ -201,8 +241,13 @@ namespace _3D_Maze
                 }
                 if (!collide)
                 {
-                    player.CenterLocation = new Point(player.CenterLocation.X + (int)Math.Round(normalized.X), player.CenterLocation.Y + (int)Math.Round(normalized.Y));
+                    windowCenterOffset = Math.Sin(offsetCounter++);
+                    player.CenterLocation = newLocation;
                 }
+            }
+            else
+            {
+                windowCenterOffset = 0;
             }
             Redraw();
         }
