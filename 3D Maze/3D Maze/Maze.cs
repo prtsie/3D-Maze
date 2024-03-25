@@ -15,6 +15,8 @@ namespace _3D_Maze
 
         public bool[,] Walls { get; }
 
+        public Point Finish { get; private set; }
+
         public Maze(ref int size)
         {
             if (size % 2 == 0)
@@ -26,13 +28,12 @@ namespace _3D_Maze
             size += WallsThickness * 2;
             InitWalls();
             Generate(start);
+            CreateFinish();
         }
 
         private void Generate(Point from)
         {
-            //Make start
             Walls[start.Y, start.X] = false;
-
             var toVisitList = GetNeighbors(from);
             while (toVisitList.Count > 0)
             {
@@ -42,8 +43,23 @@ namespace _3D_Maze
                     Visit(cellToVisit, from);
                     Generate(cellToVisit);
                 }
-
                 toVisitList.Remove(cellToVisit);
+            }
+        }
+
+        private void CreateFinish()
+        {
+            if (randomizer.Next(2) == 0)
+            {
+                var x = randomizer.Next((Walls.GetLength(0) / 2 - 1)) * 2 + 1;
+                Walls[Walls.GetLength(1) - 1, x] = false;
+                Finish = new Point(x, Walls.GetLength(1) - 1);
+            }
+            else
+            {
+                var y = randomizer.Next((Walls.GetLength(1) / 2 - 1)) * 2 + 1;
+                Walls[y, Walls.GetLength(0) - 1] = false;
+                Finish = new Point(Walls.GetLength(0) - 1, y);
             }
         }
 

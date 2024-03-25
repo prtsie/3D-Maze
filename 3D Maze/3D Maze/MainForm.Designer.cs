@@ -28,19 +28,33 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
+            gameTimer = new System.Windows.Forms.Timer(components);
             SuspendLayout();
+            // 
+            // gameTimer
+            // 
+            gameTimer.Interval = 30;
+            gameTimer.Tick += gameTimer_Tick;
             // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
+            ClientSize = new Size(684, 361);
+            MaximumSize = new Size(700, 400);
+            MinimumSize = new Size(700, 400);
             Name = "MainForm";
             Text = "MainForm";
-            Paint += MainForm_Paint;
+            Shown += MainForm_Shown;
+            KeyDown += MainForm_KeyDown;
+            KeyUp += MainForm_KeyUp;
+            MouseMove += MainForm_MouseMove;
             ResumeLayout(false);
         }
 
         #endregion
+
+        private System.Windows.Forms.Timer gameTimer;
     }
 }
