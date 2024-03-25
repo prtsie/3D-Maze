@@ -32,7 +32,7 @@
             gameTimer = new System.Windows.Forms.Timer(components);
             SuspendLayout();
             // 
-            // moveDelay
+            // gameTimer
             // 
             gameTimer.Interval = 30;
             gameTimer.Tick += gameTimer_Tick;
@@ -42,6 +42,8 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(684, 361);
+            MaximumSize = new Size(700, 400);
+            MinimumSize = new Size(700, 400);
             Name = "MainForm";
             Text = "MainForm";
             Shown += MainForm_Shown;
