@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -17,18 +18,20 @@ namespace _3D_Maze
         private readonly Maze maze;
         private readonly Player player = new();
         private readonly Size playerSize = new(10, 10);
-        private readonly Size lampSize = new(108, 179);
+        private readonly Size lampSize = new(216, 358);
         private readonly Block[] blocks;
         private BufferedGraphics buffer = null!;
         private Bitmap wallsBitmap = null!;
+        private byte[] bytes = null!;
         private Bitmap background = null!;
         private const int BlockSize = 10;
         private const int PlayerSpeed = 1;
-        private const int RenderDistance = 40;
-        private const int PixelSize = 5;
+        private const int RenderDistance = 20;
+        private const int PixelSize = 6;
         private const int CompassRadius = 25;
         private const int CompassArrowWidth = 3 * 2;
         private const int CompassOffset = 20;
+        private const int CameraShakeAmplitude = 2;
         private const double WallHeightMultiplier = 0.1;
         private const double Sensitivity = 0.01;
         private readonly int size = 15;
@@ -141,7 +144,8 @@ namespace _3D_Maze
 
         private void DrawLamp()
         {
-            var lampRectangle = new Rectangle(new Point(400, DisplayRectangle.Height - lampSize.Height + 1 + (int)Math.Round(windowCenterOffset)), lampSize);
+            var lampLocation = new Point(800, DisplayRectangle.Height - lampSize.Height + CameraShakeAmplitude + (int)Math.Round(windowCenterOffset));
+            var lampRectangle = new Rectangle(lampLocation, lampSize);
             if (lampImageIndex == lampImages.Length)
             {
                 lampImageIndex = 0;
@@ -153,10 +157,15 @@ namespace _3D_Maze
         {
             var playerViewLeftSide = (player.Angle - player.FieldOfView / 2) % (Math.PI * 2);
             var windowCenterWithOffset = windowCenter + windowCenterOffset;
+            var data = wallsBitmap.LockBits(new Rectangle(0, 0, wallsBitmap.Width, wallsBitmap.Height),
+                                            System.Drawing.Imaging.ImageLockMode.ReadWrite,
+                                            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var stride = data.Stride;
+            bytes = new byte[stride * wallsBitmap.Height];
             for (var col = 0; col < DisplayRectangle.Width; col += PixelSize)
             {
                 var rayEnd = new Vector();
-                var step = new Vector(0, -0.4).Rotate(playerViewLeftSide + angleStep * col); //Костыль
+                var step = new Vector(0, -0.5).Rotate(playerViewLeftSide + angleStep * col); //Костыль
                 var blockFound = false;
                 for (; rayEnd.Length < RenderDistance; rayEnd += step)
                 {
@@ -177,33 +186,32 @@ namespace _3D_Maze
                 var distance = rayEnd.Length > RenderDistance ? RenderDistance : rayEnd.Length;
                 var visibleHeight = wallHeight / (distance * WallHeightMultiplier);
                 var distancePercent = distance / RenderDistance;
-                var wallColor = Color.FromArgb(actualWallColor.R - (int)(actualWallColor.R * distancePercent),
-                                               actualWallColor.G - (int)(actualWallColor.G * distancePercent),
-                                              actualWallColor.B - (int)(actualWallColor.B * distancePercent));
                 for (var row = 0; row < DisplayRectangle.Height; row += PixelSize)
                 {
-                    Color color;
-                    if (row < windowCenterWithOffset - visibleHeight / 2)
+                    byte alpha;
+                    if (row > windowCenterWithOffset - visibleHeight / 2 && row < windowCenterWithOffset + visibleHeight / 2)
                     {
-                        color = Color.Black;
-                    }
-                    else if (row < windowCenterWithOffset + visibleHeight / 2)
-                    {
-                        color = wallColor;
+                        alpha = (byte)(255 * distancePercent);
                     }
                     else
                     {
-                        color = Color.Transparent;
+                        alpha = 255;
                     }
                     for (var pixelRow = 0; pixelRow < PixelSize; pixelRow++)
                     {
                         for (var pixelCol = 0; pixelCol < PixelSize; pixelCol++)
                         {
-                            wallsBitmap.SetPixel(col + pixelCol, row + pixelRow, color);
+                            var ptr = (col + pixelCol) * 4 + (row + pixelRow) * stride;
+                            bytes[ptr++] = actualWallColor.B;
+                            bytes[ptr++] = actualWallColor.G;
+                            bytes[ptr++] = actualWallColor.R;
+                            bytes[ptr] = (byte)(255 - alpha);
                         }
                     }
                 }
             }
+            Marshal.Copy(bytes, 0, data.Scan0, bytes.Length);
+            wallsBitmap.UnlockBits(data);
             buffer.Graphics.DrawImage(wallsBitmap, 0, 0);
         }
 
@@ -274,7 +282,7 @@ namespace _3D_Maze
                 }
                 if (!collide)
                 {
-                    windowCenterOffset = Math.Sin(offsetCounter++);
+                    windowCenterOffset = Math.Sin(offsetCounter++) * CameraShakeAmplitude;
                     player.CenterLocation = newLocation;
                 }
             }

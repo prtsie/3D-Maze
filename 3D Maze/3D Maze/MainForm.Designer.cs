@@ -34,16 +34,16 @@
             // 
             // gameTimer
             // 
-            gameTimer.Interval = 30;
+            gameTimer.Interval = 70;
             gameTimer.Tick += gameTimer_Tick;
             // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(684, 361);
-            MaximumSize = new Size(700, 400);
-            MinimumSize = new Size(700, 400);
+            ClientSize = new Size(1264, 681);
+            MaximumSize = new Size(1280, 720);
+            MinimumSize = new Size(1280, 720);
             Name = "MainForm";
             Text = "MainForm";
             Shown += MainForm_Shown;
