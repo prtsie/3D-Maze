@@ -33,7 +33,6 @@ namespace _3D_Maze
 
         private void Generate(Point from)
         {
-            //Make start
             Walls[start.Y, start.X] = false;
             var toVisitList = GetNeighbors(from);
             while (toVisitList.Count > 0)
